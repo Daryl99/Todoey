@@ -11,10 +11,15 @@ import UIKit
 class TodoListViewController: UITableViewController {
     
     var itemArray = ["Find Mike", "Buy Eggos", "Destory Demogorgon"]
+    
+    let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        if let items = defaults.array(forKey: "TodoListArray") as? [String] { //Load persistant data if it exists
+            itemArray = items
+        }
         
     }
 
@@ -70,6 +75,8 @@ class TodoListViewController: UITableViewController {
             print("Success")
             
             self.itemArray.append(textField.text!)
+            
+            self.defaults.set(self.itemArray, forKey: "TodoListArray")  //Saves our updated data list
             
             self.tableView.reloadData()
             
