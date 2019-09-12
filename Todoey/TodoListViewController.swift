@@ -16,7 +16,6 @@ class TodoListViewController: UITableViewController {
         super.viewDidLoad()
         
         
-        
     }
 
     //MARK: - Tableview Datasource Methods
