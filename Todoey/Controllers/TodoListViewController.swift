@@ -10,14 +10,27 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
     
-    var itemArray = ["Find Mike", "Buy Eggos", "Destory Demogorgon"]
+    var itemArray = [Item]()
     
     let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        let newItem = Item()
+        newItem.title = "Get Bread"
+        itemArray.append(newItem)
         
-        if let items = defaults.array(forKey: "TodoListArray") as? [String] { //Load persistant data if it exists
+        let newItem2 = Item()
+        newItem2.title = "Get Milk"
+        itemArray.append(newItem2)
+        
+        let newItem3 = Item()
+        newItem3.title = "Find Janie"
+        itemArray.append(newItem3)
+        
+        
+        if let items = defaults.array(forKey: "TodoListArray") as? [Item] { //Load persistant data if it exists
             itemArray = items
         }
         
@@ -33,7 +46,21 @@ class TodoListViewController: UITableViewController {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
         
-        cell.textLabel?.text = itemArray[indexPath.row]
+        let item = itemArray[indexPath.row]
+        
+        cell.textLabel?.text = item.title
+        
+        //Ternary operator
+        //value = condition ? valueIfTrue : valueIfFalse
+        cell.accessoryType = item.done == true ? .checkmark : .none
+        
+//The next 6 lines of code are equivalent to the privious 1 line of code
+//        if item.done == true {
+//            cell.accessoryType = .checkmark
+//        }
+//        else {
+//            cell.accessoryType = .none
+//        }
         
         return cell
         
@@ -43,17 +70,19 @@ class TodoListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        print(indexPath.row)
-        print(itemArray[indexPath.row])
+
+
+//This single line of code is the equivilant of the following if else statement
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done  // !itemArray = opposite of itemArray
         
-        //tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+//        if itemArray[indexPath.row].done == false {
+//            itemArray[indexPath.row].done = true
+//        }
+//        else {
+//            itemArray[indexPath.row].done = false
+//        }
         
-        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        }
-        else {
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-        }
+        tableView.reloadData()
         
         tableView.deselectRow(at: indexPath, animated: true)
         
@@ -74,7 +103,10 @@ class TodoListViewController: UITableViewController {
             
             print("Success")
             
-            self.itemArray.append(textField.text!)
+            let newItem = Item()
+            newItem.title = textField.text!
+            
+            self.itemArray.append(newItem)
             
             self.defaults.set(self.itemArray, forKey: "TodoListArray")  //Saves our updated data list
             
