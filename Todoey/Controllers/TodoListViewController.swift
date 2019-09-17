@@ -7,35 +7,30 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
     
     var itemArray = [Item]()
     
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+//Moved into viewDidLoad in Lecture 238 - let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+//        .first?.appendingPathComponent("Items.plist")  //Lecture 237 - WHEN DID Angela edit this out of the previous line?
+    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+//This print command will show us the path to our data file
+    print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
 
-        print(dataFilePath)
         
-//        let newItem = Item()
-//        newItem.title = "Get Bread"
-//        itemArray.append(newItem)
-//
-//        let newItem2 = Item()
-//        newItem2.title = "Get Milk"
-//        itemArray.append(newItem2)
-//
-//        let newItem3 = Item()
-//        newItem3.title = "Find Janie"
-//        itemArray.append(newItem3)
         
+        
+//        print(dataFilePath)   //Disappeared in Lecture 238 when moving let dataFilePath
+        
+
         loadItems()
-        
-//        if let items = defaults.array(forKey: "TodoListArray") as? [Item] { //Load persistant data if it exists
-//            itemArray = items
-//        }
         
     }
 
@@ -57,14 +52,6 @@ class TodoListViewController: UITableViewController {
         //value = condition ? valueIfTrue : valueIfFalse
         cell.accessoryType = item.done == true ? .checkmark : .none
         
-//The next 6 lines of code are equivalent to the privious 1 line of code
-//        if item.done == true {
-//            cell.accessoryType = .checkmark
-//        }
-//        else {
-//            cell.accessoryType = .none
-//        }
-        
         return cell
         
     }
@@ -72,28 +59,21 @@ class TodoListViewController: UITableViewController {
     //MARK: - TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+
+//The next two lines of code are an example if we were wanting to delete items from our database and screen.
+//        context.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
         
-
-
-//This single line of code is the equivilant of the following if else statement
+//The next line toggles the checkmark on and off
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done  // !itemArray = opposite of itemArray
-        
-//        if itemArray[indexPath.row].done == false {
-//            itemArray[indexPath.row].done = true
-//        }
-//        else {
-//            itemArray[indexPath.row].done = false
-//        }
         
         saveItems()
         
         tableView.deselectRow(at: indexPath, animated: true)
         
-        
     }
     
     //MARK: - Add New Items
-    
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
@@ -104,24 +84,23 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //what will happen once the user clicks the Add Item button on our UIAlert
             
-            print("Success")
-            
-            let newItem = Item()
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
-            
+            newItem.done = false
             self.itemArray.append(newItem)
             
-            let encoder = PropertyListEncoder()
-            
-            do {
-                let data = try encoder.encode(self.itemArray)
-                try data.write(to: self.dataFilePath!)
-            }
-            catch {
-                print("Error encoding item array, \(error)")
-            }
-            
-            self.tableView.reloadData()
+//Lecture 237 - When did Angela get rid of these lines of code?
+//            let encoder = PropertyListEncoder()
+//
+//            do {
+//                let data = try encoder.encode(self.itemArray)
+//                try data.write(to: self.dataFilePath!)
+//            }
+//            catch {
+//                print("Error encoding item array, \(error)")
+//            }
+//
+//            self.tableView.reloadData()
             
             self.saveItems()
             
@@ -129,10 +108,7 @@ class TodoListViewController: UITableViewController {
         
         alert.addTextField { (alertTextField) in
             alertTextField.placeholder = "Create new item"
-            
             textField = alertTextField
-            
-            print("New Item")
             
         }
         
@@ -144,38 +120,62 @@ class TodoListViewController: UITableViewController {
     
     //MARK: - Model Manipulation Methods
     
-    func saveItems() {   //This function encodes our data into a plist
-        
-        let encoder = PropertyListEncoder()
+    func saveItems() {
         
         do {
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+            try context.save()
         }
         catch {
-            print("Error encoding item array, \(error)")
+            print("Error saving context \(error)")
         }
         
         self.tableView.reloadData()
+    }
+    
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+    
+        do {
+            itemArray = try context.fetch(request)
+        }
+        catch {
+            print("Error fetching data from context \(error)")
+        }
+        
+        tableView.reloadData()
+        
+    }
 
+    
+}
+
+
+//MARK: - Search Bar methods
+
+extension TodoListViewController: UISearchBarDelegate {
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)   // [cd] = not case sensitive and not diacritic sensitive
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        loadItems(with: request)
         
     }
     
-    func loadItems() {   //This function decodes our plist back into our data
-        
-        if let data = try? Data(contentsOf: dataFilePath!) {
-            let decoder = PropertyListDecoder()
-            do {
-            itemArray = try decoder.decode([Item].self, from: data)
-            }
-            catch {
-                print("Error decoding item array, \(error)")
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
             }
             
         }
-        
     }
     
-    
 }
+
 
