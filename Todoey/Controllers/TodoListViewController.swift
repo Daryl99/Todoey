@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  TodoListViewController.swift
 //  Todoey
 //
 //  Created by Daryl Corbett on 11-09-19.
@@ -44,10 +44,9 @@ class TodoListViewController: UITableViewController {
         
             cell.textLabel?.text = item.title
             
-            //Ternary operator
+            //Ternary operator ==>
             //value = condition ? valueIfTrue : valueIfFalse
-            cell.accessoryType = item.done == true ? .checkmark : .none
-            
+            cell.accessoryType = item.done ? .checkmark : .none
         }
         else {
             cell.textLabel?.text = "No Items Added"
@@ -60,15 +59,21 @@ class TodoListViewController: UITableViewController {
     //MARK: - TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-
-//The next two lines of code are an example if we were wanting to delete items from our database and screen.
-//        context.delete(itemArray[indexPath.row])
-//        itemArray.remove(at: indexPath.row)
         
-//The next line toggles the checkmark on and off
-//        todoItems[indexPath.row].done = !todoItems[indexPath.row].done  // !itemArray = opposite of itemArray
-//
-//        saveItems()
+        if let item = todoItems?[indexPath.row] {
+            do {
+                try realm.write {
+//                    realm.delete(item)   //Delete item.  Whereas the line below will toggle the checkmark
+                    item.done = !item.done   //Toggle checkmark
+                }
+            }
+            catch {
+                    print("Error saving done status, \(error)")
+            }
+            
+        }
+        
+        tableView.reloadData()
         
         tableView.deselectRow(at: indexPath, animated: true)
         
@@ -90,6 +95,7 @@ class TodoListViewController: UITableViewController {
                     try self.realm.write {
                         let newItem = Item()
                         newItem.title = textField.text!
+                        newItem.dateCreated = Date()
                         currentCategory.items.append(newItem)
                     }
                 }
@@ -126,37 +132,37 @@ class TodoListViewController: UITableViewController {
 
     }
 
-    
 }
 
 
 //MARK: - Search Bar methods
 
-//extension TodoListViewController: UISearchBarDelegate {
-//
-//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//
-//        let request : NSFetchRequest<Item> = Item.fetchRequest()
-//
-//        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)   // [cd] = not case sensitive and not diacritic sensitive
-//
-//        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-//
-//        loadItems(with: request, predicate: predicate)
-//
-//    }
-//
-//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        if searchBar.text?.count == 0 {
-//            loadItems()
-//
-//            DispatchQueue.main.async {
-//                searchBar.resignFirstResponder()
-//            }
-//
-//        }
-//    }
-//
-//}
+extension TodoListViewController: UISearchBarDelegate {
 
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+
+//This will filter based on the text we want to find, sorted by date entered with the oldest first
+        todoItems = todoItems?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "dateCreated", ascending: true)
+
+//This will filter based on the text we want to find, sorted alphabetically
+//        todoItems = todoItems?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "title", ascending: true)
+        
+        tableView.reloadData()   //This line not required if only sorting by item text
+        
+    }
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            
+            }
+
+        }
+        
+    }
+
+}
 

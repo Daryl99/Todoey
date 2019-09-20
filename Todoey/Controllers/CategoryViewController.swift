@@ -60,7 +60,32 @@ class CategoryViewController: UITableViewController {
             
         }
     }
+
     
+    
+    //MARK: - Data Manipulation Methods
+    
+    func save(category: Category) {
+        
+        do {
+            try realm.write() {
+                realm.add(category)
+            }
+        }
+        catch {
+            print("Error saving category \(error)")
+        }
+        
+        self.tableView.reloadData()
+    }
+    
+    func loadCategories() {
+        
+        categories = realm.objects(Category.self)
+        
+        tableView.reloadData()
+        
+    }
     
     
     
@@ -94,37 +119,5 @@ class CategoryViewController: UITableViewController {
         
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    //MARK: - Data Manipulation Methods
-    
-    func save(category: Category) {
-        
-        do {
-            try realm.write() {
-                realm.add(category)
-            }
-        }
-        catch {
-            print("Error saving category \(error)")
-        }
-        
-        self.tableView.reloadData()
-    }
-    
-    func loadCategories() {
-        
-        categories = realm.objects(Category.self)
-        
-        tableView.reloadData()
-        
-    }
-    
     
 }
